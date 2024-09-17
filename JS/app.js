@@ -2,6 +2,49 @@
 const BASE_URL = 'https://jsonplaceholder.typicode.com/';
 const selectElm = document.querySelector('select');
 const todosContainer = document.querySelector('.todos');
+const btnMood = document.querySelector('#btnMood');
+const input = document.querySelector('#input');
+const btnPost = document.querySelector('#btnPost');
+let ShowMood = 'todos';
+const writePost = async (e) => {
+    try {
+        if (input.value == '') {
+            console.log('You can not write an empty post');
+            throw new Error('You can not write an empty post');
+        }
+        if (selectElm.value == '') {
+            console.log('You must choose a user');
+            throw new Error('You must choose a user');
+        }
+        const newPost = {
+            title: 'newPost',
+            body: input.value,
+            userId: Number(selectElm.value),
+        };
+        const res = await fetch(`${BASE_URL}/posts`, {
+            method: 'POST',
+            body: JSON.stringify(newPost),
+            headers: {
+                'Content-type': 'application/json; charset=UTF-8',
+            },
+        });
+        const data = await res.json();
+        console.log(data);
+    }
+    catch (err) {
+        console.log(err);
+    }
+};
+const changeShowMood = (e) => {
+    if (ShowMood == 'todos') {
+        ShowMood = 'posts';
+        e.currentTarget.textContent = 'Posts Mood';
+    }
+    else {
+        ShowMood = 'todos';
+        e.currentTarget.textContent = 'Todos Mood';
+    }
+};
 const getUsers = async () => {
     try {
         const res = await fetch(BASE_URL + 'users');
@@ -69,14 +112,41 @@ const createTodoDiv = (arr) => {
         todosContainer.appendChild(row);
     }
 };
-const getTodoByUser = async (e) => {
+const createPostDiv = (arr) => {
+    todosContainer.textContent = '';
+    for (const element of arr) {
+        const row = document.createElement('div');
+        row.classList.add('toDoRow');
+        row.id = element.id ? element.id.toString() : '';
+        const title = document.createElement('h3');
+        title.textContent = element.title;
+        row.appendChild(title);
+        const p = document.createElement('p');
+        p.textContent = element.body;
+        row.appendChild(p);
+        const btnEdit = document.createElement('div');
+        todosContainer.appendChild(row);
+    }
+};
+const Render = (arr) => {
+    if (ShowMood == 'todos' && arr.length > 0 && 'completed' in arr[0]) {
+        createTodoDiv(arr);
+    }
+    else if (ShowMood == 'posts' && arr.length > 0 && 'body' in arr[0]) {
+        createPostDiv(arr);
+    }
+};
+const getDataByUser = async (e) => {
     try {
-        const res = await fetch(`${BASE_URL}todos?userId=${e.target.value}`);
+        const res = await fetch(`${BASE_URL}${ShowMood}?userId=${selectElm.value}`);
         const todos = await res.json();
-        createTodoDiv(todos);
+        Render(todos);
     }
     catch (err) {
     }
 };
-selectElm === null || selectElm === void 0 ? void 0 : selectElm.addEventListener('change', e => getTodoByUser(e));
+btnPost.addEventListener('click', (e) => { writePost(e); input.value = ''; });
+selectElm === null || selectElm === void 0 ? void 0 : selectElm.addEventListener('change', e => getDataByUser(e));
+btnMood === null || btnMood === void 0 ? void 0 : btnMood.addEventListener('click', changeShowMood);
+btnMood === null || btnMood === void 0 ? void 0 : btnMood.addEventListener('click', e => getDataByUser(e));
 getUsers();

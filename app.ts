@@ -1,6 +1,60 @@
 const BASE_URL: string = 'https://jsonplaceholder.typicode.com/'
 const selectElm: HTMLSelectElement | null = document.querySelector('select')
 const todosContainer: HTMLDivElement = document.querySelector('.todos')!
+const btnMood = document.querySelector('#btnMood') as HTMLButtonElement
+const input = document.querySelector('#input') as HTMLInputElement
+const btnPost = document.querySelector('#btnPost') as HTMLButtonElement
+let ShowMood : string = 'todos'
+
+
+const writePost = async ( e : MouseEvent):Promise<void> =>{
+    try{
+        if(input.value == ''){
+            console.log('You can not write an empty post')
+            throw new Error('You can not write an empty post')
+        }
+        if((selectElm as HTMLSelectElement).value == ''){
+            console.log('You must choose a user')
+            throw new Error('You must choose a user')
+        }
+        const newPost : Post = {
+            title: 'newPost',
+            body: input.value,
+            userId:Number((selectElm as HTMLSelectElement).value),
+        }
+
+        const res = await fetch(`${BASE_URL}/posts`, {
+            method: 'POST',
+            body: JSON.stringify(newPost),
+            headers: {
+              'Content-type': 'application/json; charset=UTF-8',
+            },
+          })
+        const data = await res.json()
+        console.log(data)
+    }catch(err){
+        console.log(err)
+    }
+}
+
+
+const changeShowMood = ( e : MouseEvent):void =>{
+    if(ShowMood == 'todos')
+    {
+        ShowMood = 'posts';
+        (e.currentTarget as HTMLButtonElement).textContent = 'Posts Mood'
+         
+    }
+    else{
+        ShowMood = 'todos';
+        (e.currentTarget as HTMLButtonElement).textContent = 'Todos Mood'
+
+    }
+     
+}
+
+
+
 
 
 const getUsers = async (): Promise<void> => {
@@ -76,22 +130,56 @@ const createTodoDiv = (arr:Todo[]) : void =>{
 
 }
 
-const getTodoByUser = async (e:InputEvent): Promise<void> => {
+const createPostDiv = (arr : Post[]): void =>{
+    todosContainer.textContent = ''
+    for (const element of arr) {
+        const row = document.createElement('div')
+        row.classList.add('toDoRow')
+        row.id = element.id? element.id.toString() : ''
+        const title = document.createElement('h3')
+        title.textContent = element.title
+        row.appendChild(title)
+        const p = document.createElement('p')
+        p.textContent = element.body
+        row.appendChild(p)
+        const btnEdit = document.createElement('div')
+        todosContainer.appendChild(row)
+    }
+}
+
+
+const Render = (arr: data[]): void =>{
+    if(ShowMood == 'todos' && arr.length > 0 && 'completed' in arr[0])
+    {
+        createTodoDiv(arr as Todo[])
+    }
+    else if (ShowMood == 'posts' && arr.length > 0 && 'body' in arr[0])
+    {
+        createPostDiv(arr as Post[])
+    }
+
+}
+
+
+const getDataByUser = async <T>(e: T): Promise<void> => {
     try {
-        const res = await fetch(`${BASE_URL}todos?userId=${(e.target as HTMLSelectElement).value}`)
+        const res = await fetch(`${BASE_URL}${ShowMood}?userId=${(selectElm as HTMLSelectElement).value}`)
         const todos = await res.json()
-        createTodoDiv(todos)
+        Render(todos)
     } catch (err) {
         
     }
 }
 
-selectElm?.addEventListener('change', e => getTodoByUser(e as InputEvent))
 
+btnPost.addEventListener('click', (e: MouseEvent) => {writePost(e); input.value = ''} )
+selectElm?.addEventListener('change', e => getDataByUser(e as InputEvent))
+btnMood?.addEventListener('click', changeShowMood)
+btnMood?.addEventListener('click', e => getDataByUser(e as MouseEvent))
 getUsers()
 
 
-
+type data = Todo | Post
 interface User {
     id: number
     name: string
@@ -115,4 +203,11 @@ interface Todo {
     id : number,
     title : string,
     completed : boolean
+}
+
+interface Post{
+    userId: number,
+    id?: number,
+    title: string,
+    body: string
 }
